@@ -13,7 +13,7 @@ function NutritionAnalysis({ result }) {
   return (
     <div className="w-full">
       <p className="mb-4 text-sm text-gray-600">
-        분석 대상: <span className="font-medium">{result.gender}</span> / <span className="font-medium">{result.ageGroup}</span>
+      <span className="font-medium">{result.gender}</span> / <span className="font-medium">{result.ageGroup}대</span> <span className="font-medium"> {result.username}님</span>
       </p>
 
       {/* 결과 테이블 */}
@@ -40,12 +40,12 @@ function NutritionAnalysis({ result }) {
       <div className="mt-4 space-y-2">
         {result.warnings.map((msg, i) => (
           <p key={i} className="text-sm text-red-500 flex items-center">
-            안되요 !{msg}
+          {msg}
           </p>
         ))}
         {result.advices.map((msg, i) => (
           <p key={i} className="text-sm text-green-600 flex items-center">
-            가능 !{msg}
+            {msg}
           </p>
         ))}
       </div>

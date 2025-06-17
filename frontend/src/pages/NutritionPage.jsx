@@ -1,28 +1,21 @@
 // src/pages/NutritionPage.jsx
-
 import UploadForm from "../components/UploadForm";
-import ProfileSelector from "../components/ProfileSelector";
 import NutritionAnalysis from "../components/NutritionAnalysis";
 import { useState } from "react";
 
-function NutritionPage() {
+function NutritionPage({ user }) {
   const [image, setImage] = useState(null);
-  const [userProfile, setUserProfile] = useState({ gender: "", ageGroup: "" });
   const [result, setResult] = useState(null);
 
-   // 🔹 분석 요청 함수 추가
-   const handleSubmit = async () => {
-    if (!image || !userProfile.gender || !userProfile.ageGroup) {
-      alert("모든 정보를 입력하세요.");
+  const handleSubmit = async () => {
+    if (!image) {
+      alert("이미지를 선택해주세요.");
       return;
     }
 
     const formData = new FormData();
     formData.append("image", image);
-    formData.append("gender", userProfile.gender);
-    formData.append("ageGroup", userProfile.ageGroup);
-
-    console.log("업로드 요청 시작:", image.name, userProfile);
+    formData.append("user_id", user.id); //  사용자 ID를 서버로 전송
 
     try {
       const res = await fetch("http://localhost:8000/upload", {
@@ -42,12 +35,8 @@ function NutritionPage() {
     <div className="flex flex-col md:flex-row w-full h-screen">
       {/* 왼쪽 입력 영역 */}
       <div className="w-full md:w-1/2 p-6 bg-gray-100 border-r overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-center">사진 업로드 & 사용자 입력</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">사진 업로드</h2>
         <UploadForm onImageSelect={setImage} />
-        <div className="mt-6">
-          <ProfileSelector onProfileChange={setUserProfile} />
-        </div>
-
         <button
           onClick={handleSubmit}
           className="mt-6 w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
