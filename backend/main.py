@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from tempfile import NamedTemporaryFile
 from shutil import copyfileobj
+from routers.auth_routes import router as auth_router
+from routers import auth
+from db import conn, cursor  #  DB 연결
+
 import os
 import easyocr
 
@@ -11,6 +15,9 @@ from ocr.extractor import extract_value
 from ocr.constants import NUTRIENT_BASES
 
 app = FastAPI()
+app.include_router(auth_router)
+app.include_router(auth.router, prefix="/auth")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -23,9 +30,20 @@ reader = easyocr.Reader(['ko', 'en'], gpu=False)
 @app.post("/upload")
 async def upload_image(
     image: UploadFile = File(...),
-    gender: str = Form(...),
-    ageGroup: str = Form(...)
+    user_id: str = Form(...)
 ):
+    #  사용자 정보 조회
+    cursor.execute("SELECT username, gender, age_group FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        return JSONResponse(status_code=404, content={"error": "사용자 정보를 찾을 수 없습니다."})
+    
+    username = user["username"]  
+    gender = user["gender"]
+    ageGroup = user["age_group"]
+
+    gender = "남성" if gender.lower() == "male" else "여성"  #영어 gender → 한글 매핑
+    #  이미지 저장 및 전처리
     suffix = os.path.splitext(image.filename)[1]
     with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         copyfileobj(image.file, tmp)
@@ -38,6 +56,7 @@ async def upload_image(
     result = reader.readtext(processed_img, detail=0)
     print("추출된 텍스트:", result)
 
+    #  기준값 불러오기 및 OCR 기반 추출
     base = NUTRIENT_BASES[gender]
     nutrient_info = {
         "열량": ("kcal", extract_value(result, ["열량", "kcal", "칼로리"]), base["energy"]),
@@ -58,7 +77,9 @@ async def upload_image(
             "percentage": round(val / base_val * 100)
         })
 
+    # 응답 구성
     response = {
+        "username": username, 
         "gender": gender,
         "ageGroup": ageGroup,
         "nutrients": nutrients,
