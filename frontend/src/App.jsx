@@ -44,7 +44,7 @@ function App() {
             transition={{ duration: 0.5 }}
             className="w-full max-w-6xl z-10"
           >
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg overflow-hidden">
               <NutritionPage user={user} />
             </div>
           </motion.div>
