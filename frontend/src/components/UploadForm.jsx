@@ -15,24 +15,36 @@ function UploadForm({ onImageSelect }) {
 
   return (
     <div className="w-full">
-      <label className="block text-lg font-semibold mb-2">식품 라벨 이미지 업로드</label>
-
-      <div className="w-full h-48 border-2 border-dashed border-gray-400 flex items-center justify-center bg-white rounded-md mb-2">
+      {/* <label className="block text-lg font-semibold mb-2">식품 라벨 이미지 업로드</label> */}
+  
+      {/* 클릭 가능한 박스 */}
+      <label
+        htmlFor="image-upload"
+        className="w-full h-48 cursor-pointer border-2 border-dashed border-purple-400 flex items-center justify-center bg-white rounded-xl mb-4"
+      >
         {preview ? (
-          <img src={preview} alt="Preview" className="h-full object-contain" />
+          <img src={preview} alt="미리보기" className="h-full object-contain" />
         ) : (
-          <span className="text-gray-400">이미지를 선택하세요</span>
+          <div className="flex flex-col items-center text-purple-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="font-medium">이곳에 이미지 업로드</span>
+          </div>
         )}
-      </div>
-
+      </label>
+  
+      {/* 실제 파일 선택 input (숨김 처리) */}
       <input
+        id="image-upload"
         type="file"
         accept="image/*"
         onChange={handleImageChange}
-        className="w-full text-sm text-gray-700 file:mr-4 file:py-1 file:px-4 file:border file:rounded-md file:bg-gray-200 hover:file:bg-gray-300"
+        className="hidden"
       />
     </div>
   );
+  
 }
 
 export default UploadForm;
