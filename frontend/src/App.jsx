@@ -1,11 +1,25 @@
 // App.jsx
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import NutritionPage from "./pages/NutritionPage";
 import LoginRegisterPage from "./pages/LoginRegisterPage";
 import { motion, AnimatePresence } from "framer-motion";
 
 function App() {
   const [user, setUser] = useState(null);
+  
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+  };
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+ 
+
+
 
   return (
     <div className="relative min-h-screen bg-black flex justify-center items-start py-8 overflow-hidden">
@@ -18,7 +32,7 @@ function App() {
               backgroundImage: "url('/images/bg.png')",
             }}
           />
-          <div className="absolute inset-0 bg-black/40 z-0" />
+          <div className="absolute inset-0 bg-black/40 z-0" />  
         </>
       )}
 
@@ -44,9 +58,8 @@ function App() {
             transition={{ duration: 0.5 }}
             className="w-full max-w-6xl z-10"
           >
-            <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg overflow-hidden">
-              <NutritionPage user={user} />
-            </div>
+            <NutritionPage user={user} handleLogout={handleLogout} />
+            
           </motion.div>
         )}
       </AnimatePresence>

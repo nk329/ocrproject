@@ -6,7 +6,7 @@ export default function LoginRegisterPage({ setUser }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [gender, setGender] = useState("male");
-  const [ageGroup, setAgeGroup] = useState("20s");
+  const [ageGroup, setAgeGroup] = useState("20");
   const [isLogin, setIsLogin] = useState(true);
 
   const handleSubmit = async (e) => {
@@ -24,6 +24,7 @@ export default function LoginRegisterPage({ setUser }) {
       const res = await axios.post(`http://localhost:8000${endpoint}`, formData);
       if (isLogin) {
         setUser(res.data.user);
+        localStorage.setItem("user", JSON.stringify(res.data.user)); // 로그인 성공시 로컬 스토리지 저장
       } else {
         alert("회원가입 성공! 로그인해주세요");
         setIsLogin(true);
@@ -34,33 +35,40 @@ export default function LoginRegisterPage({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded shadow-md w-80 space-y-4"
+        className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm space-y-5"
       >
-        <h2 className="text-xl font-semibold text-center">
+        {/* 앱 로고 / 상호명 */}
+        <h1 className="text-3xl font-extrabold text-green-600 text-center mb-2">
+          DailyValue
+        </h1>
+
+        <h2 className="text-lg font-semibold text-center text-gray-800">
           {isLogin ? "로그인" : "회원가입"}
         </h2>
+
         <input
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
           placeholder="아이디"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
         />
         <input
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
           type="password"
           placeholder="비밀번호"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+
         {!isLogin && (
           <>
             <select
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={gender}
               onChange={(e) => setGender(e.target.value)}
             >
@@ -68,7 +76,7 @@ export default function LoginRegisterPage({ setUser }) {
               <option value="female">여성</option>
             </select>
             <select
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={ageGroup}
               onChange={(e) => setAgeGroup(e.target.value)}
             >
@@ -81,17 +89,19 @@ export default function LoginRegisterPage({ setUser }) {
             </select>
           </>
         )}
+
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded"
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md transition"
         >
           {isLogin ? "로그인" : "회원가입"}
         </button>
+
         <p
           onClick={() => setIsLogin(!isLogin)}
-          className="text-sm text-center text-blue-600 cursor-pointer"
+          className="text-sm text-center text-green-600 hover:underline cursor-pointer"
         >
-          {isLogin ? "회원가입하기" : "로그인하기"}
+          {isLogin ? "아직 회원이 아니신가요? 회원가입하기" : "이미 계정이 있나요? 로그인하기"}
         </p>
       </form>
     </div>

@@ -11,7 +11,7 @@ NUTRIENT_BASES = {
     },
     "여성": {
         "energy": 1900,
-        "protein": 50,
+        "protein": 50,  
         "sodium": 2000,
         "sugar": 100,
         "fat": 70,
