@@ -20,16 +20,16 @@ function UploadForm({ onImageSelect }) {
       {/* 클릭 가능한 박스 */}
       <label
         htmlFor="image-upload"
-        className="w-full h-48 cursor-pointer border-2 border-dashed border-purple-400 flex items-center justify-center bg-white rounded-xl mb-4"
+        className="w-full h-40 sm:h-48 cursor-pointer border-2 border-dashed border-purple-400 flex items-center justify-center bg-white rounded-xl mb-4"
       >
         {preview ? (
-          <img src={preview} alt="미리보기" className="h-full object-contain" />
+          <img src={preview} alt="미리보기" className="h-full w-full object-contain rounded-lg" />
         ) : (
           <div className="flex flex-col items-center text-purple-400">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span className="font-medium">이곳에 이미지 업로드</span>
+            <span className="font-medium text-sm sm:text-base">이곳에 이미지 업로드</span>
           </div>
         )}
       </label>

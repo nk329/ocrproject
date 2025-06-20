@@ -29,7 +29,7 @@ app.add_middleware(
 reader = easyocr.Reader(['ko', 'en'], gpu=False)
 
 
-# ✅ 하루 누적 저장 함수
+#  하루 누적 저장 함수
 def save_nutrients(user_id: int, nutrients: list):
     today = date.today()
     for nutrient in nutrients:
@@ -132,7 +132,7 @@ async def upload_image(
         "포화지방": ("g", extract_value(result, ["포화지방", "satfat", "saturated"]), base["sat_fat"]),
     }
 
-    # ✅ 현재 인식된 값
+    #  현재 인식된 값
     nutrients = []
     for name, (unit, val, base_val) in nutrient_info.items():
         val = float(val)
@@ -143,18 +143,18 @@ async def upload_image(
             "percentage": round(val / base_val * 100)
         })
 
-    # ✅ 하루 누적 DB 저장
+    # 하루 누적 DB 저장
     save_nutrients(user_id=int(user_id), nutrients=nutrients)
 
-    # ✅ 누적된 하루치 불러오기 + 퍼센트 재계산
+    # 누적된 하루치 불러오기 + 퍼센트 재계산
     today_nutrients = get_today_nutrients(user_id=int(user_id), gender=gender)
 
-    # ✅ 경고 및 피드백
+    # 경고 및 피드백
     response = {
         "username": username,
         "gender": gender,
         "ageGroup": ageGroup,
-        "latestNutrients": nutrients,   # ✅ 이 줄을 추가해야 React 쪽에서 테이블이 나옴
+        "latestNutrients": nutrients,   #  이 줄을 추가해야 React 쪽에서 테이블이 나옴
         "nutrients": today_nutrients,
         "warnings": [],
         "advices": []

@@ -22,7 +22,7 @@ function App() {
 
 
   return (
-    <div className="relative min-h-screen bg-black flex justify-center items-start py-8 overflow-hidden">
+    <div className="relative min-h-screen bg-black flex justify-center items-start py-4 lg:py-8 overflow-hidden">
       {/*  배경 이미지 */}
       {user && (
         <>
@@ -45,7 +45,7 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             transition={{ duration: 0.4 }}
-            className="w-full max-w-2xl z-10"
+            className="w-full max-w-2xl z-10 px-4"
           >
             <LoginRegisterPage setUser={setUser} />
           </motion.div>
@@ -56,7 +56,7 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-6xl z-10"
+            className="w-full max-w-7xl z-10 h-full"
           >
             <NutritionPage user={user} handleLogout={handleLogout} />
             
