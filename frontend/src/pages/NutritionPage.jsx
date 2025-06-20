@@ -1,8 +1,9 @@
 // src/pages/NutritionPage.jsx
 import UploadForm from "../components/UploadForm";
-import NutritionAnalysis from "../components/NutritionAnalysis";
 import { useState, useEffect } from "react";
 import NutrientBars from "../components/NutrientBars";
+import RightPanel from "../components/RightPanel";
+import EditNutrientsModal from "../components/EditNutrientsModal";
 
 function NutritionPage({ user, handleLogout }) {
   const [image, setImage] = useState(null);
@@ -10,6 +11,8 @@ function NutritionPage({ user, handleLogout }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [messages, setMessages] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [ocrResult, setOcrResult] = useState(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -40,7 +43,7 @@ function NutritionPage({ user, handleLogout }) {
     fetchInitialData();
   }, [user]);
 
-  const handleSubmit = async () => {
+  const handleAnalysis = async () => {
     if (!image) {
       alert("이미지를 선택해주세요.");
       return;
@@ -59,14 +62,40 @@ function NutritionPage({ user, handleLogout }) {
       });
 
       const data = await res.json();
-      setResult(data);
+      if (data.ocr_nutrients) {
+        setOcrResult(data.ocr_nutrients);
+        setIsModalOpen(true);
+      }
+
     } catch (error) {
       console.error("요청 실패:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
+  const handleFinalSubmit = async (finalNutrients) => {
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("http://localhost:8000/add-nutrients", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: String(user.id), nutrients: finalNutrients }),
+      });
+      const data = await res.json();
+      setResult(data);
+      if (data.ai_feedback) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.ai_feedback }]);
+      }
+      setImage(null);
+    } catch (error) {
+      console.error("최종 제출 실패:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const isLoading = isInitialLoading || isSubmitting;
 
   const handleAskAI = async (question) => {
@@ -111,83 +140,38 @@ function NutritionPage({ user, handleLogout }) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row">
-      {/* 왼쪽 입력 영역 */}
-      <div className="w-full lg:w-1/2 p-4 lg:p-6 flex-shrink-0 bg-transparent">
-        <h1 className="text-2xl lg:text-3xl font-extrabold text-green-600 mb-6 lg:mb-8 text-center">
-          DailyValue
-        </h1>
+    <>
+      <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row overflow-hidden">
+        {/* 왼쪽 입력 영역 */}
+        <div className="w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto bg-transparent no-scrollbar">
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-green-600 mb-6 lg:mb-8 text-center">
+            DailyValue
+          </h1>
+          <NutrientBars nutrients={result?.nutrients} />
+        </div>
 
-        <UploadForm onImageSelect={setImage} />
-
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className={`mt-6 w-full py-2 px-4 font-semibold rounded-md transition ${
-            isLoading
-              ? "bg-gray-400 cursor-not-allowed text-white"
-              : "bg-green-600 text-white hover:bg-green-700"
-          }`}
-        >
-          {isSubmitting ? "분석 중..." : "분석 요청하기"}
-        </button>
-
-        {result && (
-          <div className="flex flex-col gap-1 p-4 mt-4 bg-gray-100 rounded-lg shadow-sm text-sm text-gray-800">
-            <div className="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-purple-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5.121 17.804A13.937 13.937 0 0112 15c2.362 0 4.578.57 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <p className="space-x-1">
-                <span className="font-semibold">{result.username}</span>님 /
-                <span className="text-gray-700">{result.gender}</span> /
-                <span className="text-gray-700">{result.ageGroup}대</span>
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleLogout}
-                className="text-xs text-gray-500 hover:text-red-500 underline"
-              >
-                로그아웃
-              </button>
-            </div>
-          </div>
-        )}
-        <NutrientBars nutrients={result?.nutrients} />
+        {/* 오른쪽 결과 영역 */}
+        <RightPanel 
+          user={user}
+          result={result}
+          messages={messages}
+          onAskAI={handleAskAI}
+          handleLogout={handleLogout}
+          isInitialLoading={isInitialLoading}
+          onImageSelect={setImage}
+          handleSubmit={handleAnalysis}
+          isLoading={isLoading}
+          isSubmitting={isSubmitting}
+          image={image}
+        />
       </div>
-
-      {/* 오른쪽 결과 영역 */}
-      <div className="w-full lg:w-1/2 p-4 lg:p-6 bg-white shadow-xl lg:rounded-l-xl overflow-y-auto min-h-0 flex-1">
-        <h2 className="text-lg lg:text-xl font-bold text-white text-center bg-green-600 py-3 rounded-t-md shadow mb-4">
-          영양 분석 결과
-        </h2>
-        {isInitialLoading ? (
-          <div className="flex flex-col items-center mt-10">
-            <div className="animate-spin h-12 w-12 border-4 border-green-500 border-t-transparent rounded-full" />
-            <p className="mt-4 text-gray-500">데이터를 불러오는 중입니다...</p>
-          </div>
-        ) : (
-          <NutritionAnalysis
-            result={result}
-            messages={messages}
-            onAskAI={handleAskAI}
-          />
-        )}
-      </div>
-    </div>
+      <EditNutrientsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        ocrData={ocrResult}
+        onSubmit={handleFinalSubmit}
+      />
+    </>
   );
 }
 

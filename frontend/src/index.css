@@ -24,3 +24,16 @@ code {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* 스크롤바 숨기기 유틸리티 클래스 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* React-Calendar 스타일 */
+@import 'react-calendar/dist/Calendar.css';

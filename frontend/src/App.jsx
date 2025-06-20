@@ -1,69 +1,50 @@
 // App.jsx
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import NutritionPage from "./pages/NutritionPage";
 import LoginRegisterPage from "./pages/LoginRegisterPage";
 import { motion, AnimatePresence } from "framer-motion";
 
 function App() {
   const [user, setUser] = useState(null);
-  
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
   };
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    setIsAuthChecked(true);
   }, []);
- 
 
-
+  if (!isAuthChecked) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
-    <div className="relative min-h-screen bg-black flex justify-center items-start py-4 lg:py-8 overflow-hidden">
-      {/*  배경 이미지 */}
-      {user && (
-        <>
-          <div
-            className="absolute inset-0 bg-cover bg-center z-0"
-            style={{
-              backgroundImage: "url('/images/bg.png')",
-            }}
-          />
-          <div className="absolute inset-0 bg-black/40 z-0" />  
-        </>
-      )}
+    <Router>
+      <div className={`relative min-h-screen bg-[#f5f5f5] flex justify-center overflow-hidden ${user ? 'items-start' : 'items-center py-4 lg:py-8'}`}>
 
-      {/*  콘텐츠 */}
-      <AnimatePresence mode="wait">
-        {!user ? (
-          <motion.div
-            key="auth"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.4 }}
-            className="w-full max-w-2xl z-10 px-4"
-          >
-            <LoginRegisterPage setUser={setUser} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="main"
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-7xl z-10 h-full"
-          >
-            <NutritionPage user={user} handleLogout={handleLogout} />
-            
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        {/*  콘텐츠 */}
+        <AnimatePresence mode="wait">
+          <Routes>
+            {!user ? (
+              <>
+                <Route path="/auth" element={<LoginRegisterPage setUser={setUser} />} />
+                <Route path="*" element={<Navigate to="/auth" />} />
+              </>
+            ) : (
+              <Route path="/*" element={<NutritionPage user={user} handleLogout={handleLogout} />} />
+            )}
+          </Routes>
+        </AnimatePresence>
+      </div>
+    </Router>
   );
 }
 
