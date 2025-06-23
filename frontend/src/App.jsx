@@ -1,36 +1,35 @@
 // App.jsx
-import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import NutritionPage from "./pages/NutritionPage";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginRegisterPage from "./pages/LoginRegisterPage";
-import { motion, AnimatePresence } from "framer-motion";
+import StatisticsPage from './pages/StatisticsPage';
+import MyPage from './pages/MyPage';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { AnimatePresence } from "framer-motion";
+import SharedLayout from './components/SharedLayout';
+import HomePage from './pages/HomePage';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
     setUser(null);
   };
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsAuthChecked(true);
-  }, []);
-
-  if (!isAuthChecked) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
   return (
-    <Router>
-      <div className={`relative min-h-screen bg-[#f5f5f5] flex justify-center overflow-hidden ${user ? 'items-start' : 'items-center py-4 lg:py-8'}`}>
-
-        {/*  콘텐츠 */}
+    <ThemeProvider>
+      <Router>
         <AnimatePresence mode="wait">
           <Routes>
             {!user ? (
@@ -39,12 +38,17 @@ function App() {
                 <Route path="*" element={<Navigate to="/auth" />} />
               </>
             ) : (
-              <Route path="/*" element={<NutritionPage user={user} handleLogout={handleLogout} />} />
+              <Route element={<SharedLayout user={user} handleLogout={handleLogout} />}>
+                <Route index element={<HomePage />} />
+                <Route path="/statistics" element={<StatisticsPage user={user} />} />
+                <Route path="/mypage" element={<MyPage user={user} handleLogout={handleLogout} />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Route>
             )}
           </Routes>
         </AnimatePresence>
-      </div>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

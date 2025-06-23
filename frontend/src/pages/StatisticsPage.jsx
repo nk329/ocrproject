@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../contexts/ThemeContext';
+import 'react-calendar/dist/Calendar.css'; 
+import { useOutletContext } from 'react-router-dom';
 
 // 시간대 문제를 피하기 위해 'YYYY-MM-DD' 형식의 문자열로 날짜를 포맷하는 함수
 const formatDateToUTCString = (date) => {
@@ -10,7 +13,9 @@ const formatDateToUTCString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function StatisticsPage({ user }) {
+function StatisticsPage() {
+  const { user } = useOutletContext();
+  const { theme } = useTheme();
   const [statsData, setStatsData] = useState(null);
   // 선택된 날짜를 'YYYY-MM-DD' 문자열로 관리
   const [selectedDate, setSelectedDate] = useState(formatDateToUTCString(new Date()));
@@ -45,53 +50,64 @@ function StatisticsPage({ user }) {
     setSelectedDate(formatDateToUTCString(date));
   };
   
-  return (
-    <div className="flex-1 p-6 overflow-y-auto bg-gray-100">
-      {isLoading ? (
-        <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">통계 데이터를 불러오는 중입니다...</p>
-        </div>
-      ) : (
-        <>
-          {/* 캘린더 */}
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-            <h3 className="font-bold text-lg mb-2 text-gray-700">일일 섭취 기록</h3>
-            <Calendar
-              onChange={handleDateChange}
-              value={new Date(selectedDate)} // Calendar의 value prop은 Date 객체를 필요로 함
-              tileClassName={({ date, view }) => {
-                // 캘린더의 각 날짜도 UTC 문자열로 변환하여 비교
-                if (view === 'month' && statsData && statsData[formatDateToUTCString(date)]) {
-                  return 'bg-green-100 rounded-full';
-                }
-              }}
-            />
-          </div>
+  const chartColor = theme === 'dark' ? '#9CA3AF' : '#6B7280';
+  const tooltipStyle = theme === 'dark' 
+    ? { backgroundColor: '#1F2937', border: '1px solid #374151', color: '#E5E7EB' }
+    : { backgroundColor: '#FFFFFF', color: '#374151' };
 
-          {/* 주간/월간 리포트 (차트) */}
-          <div className="bg-white p-4 rounded-lg shadow-sm min-h-[300px]">
-            <h3 className="font-bold text-lg mb-4 text-gray-700">
-              {new Date(selectedDate).toLocaleDateString()} 영양소 섭취량
-            </h3>
-            {selectedDayData ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <XAxis dataKey="name" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="섭취량" fill="#4ade80" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                선택한 날짜에 기록된 데이터가 없습니다.
-              </div>
-            )}
+  return (
+    <>
+      <div className="bg-green-600 text-white p-4 shadow flex-shrink-0 flex justify-between items-center">
+          <h2 className="text-lg font-bold">통계</h2>
+      </div>
+      <div className="flex-1 p-6 overflow-y-auto bg-gray-100 dark:bg-gray-900">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 dark:text-gray-400">통계 데이터를 불러오는 중입니다...</p>
           </div>
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            {/* 캘린더 */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm mb-6">
+              <h3 className="font-bold text-lg mb-2 text-gray-700 dark:text-gray-300">일일 섭취 기록</h3>
+              <Calendar
+                onChange={handleDateChange}
+                value={new Date(selectedDate)} // Calendar의 value prop은 Date 객체를 필요로 함
+                className={theme === 'dark' ? 'dark-calendar' : ''}
+                tileClassName={({ date, view }) => {
+                  // 캘린더의 각 날짜도 UTC 문자열로 변환하여 비교
+                  if (view === 'month' && statsData && statsData[formatDateToUTCString(date)]) {
+                    return 'has-data';
+                  }
+                }}
+              />
+            </div>
+
+            {/* 주간/월간 리포트 (차트) */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm min-h-[300px]">
+              <h3 className="font-bold text-lg mb-4 text-gray-700 dark:text-gray-300">
+                {new Date(selectedDate).toLocaleDateString()} 영양소 섭취량
+              </h3>
+              {selectedDayData ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <XAxis dataKey="name" fontSize={12} stroke={chartColor} />
+                    <YAxis fontSize={12} stroke={chartColor}/>
+                    <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(156, 163, 175, 0.2)' }} />
+                    <Legend wrapperStyle={{ color: chartColor }} />
+                    <Bar dataKey="섭취량" fill="#4ade80" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                  선택한 날짜에 기록된 데이터가 없습니다.
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

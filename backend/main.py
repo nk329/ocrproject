@@ -337,25 +337,42 @@ async def get_statistics(user_id: int):
 
 @app.post("/ask-ai")
 async def ask_ai(request: AskRequest):
-    # 사용자 정보 및 누적 영양 데이터 조회
-    cursor.execute("SELECT gender, age_group FROM users WHERE id = %s", (request.user_id,))
+    # 사용자 정보 및 누적 영양 데이터 조회 (health_goal 추가)
+    cursor.execute("SELECT gender, age_group, health_goal FROM users WHERE id = %s", (request.user_id,))
     user = cursor.fetchone()
     if not user:
         return JSONResponse(status_code=404, content={"error": "사용자를 찾을 수 없습니다."})
     
     gender = "남성" if user["gender"].lower() == "male" else "여성"
     today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender)
-    nutrient_summary = "\n".join(
-        [f"- {n['name']}: {n['value']}{n['unit']} ({n['percentage']}% of daily value)" for n in today_nutrients]
-    )
+    
+    if today_nutrients:
+        nutrient_summary = "\n".join(
+            [f"- {n['name']}: {n['value']}{n['unit']} ({n['percentage']}% of daily value)" for n in today_nutrients]
+        )
+    else:
+        nutrient_summary = "아직 기록된 섭취량이 없습니다."
 
-    # ChatGPT에 전달할 프롬프트 (대화 형식)
+    # 훨씬 더 구체적이고 역할을 명확히 하는 프롬프트
     system_prompt = f"""
-    당신은 사용자의 영양 데이터를 기반으로 질문에 답변하는 친절하고 유능한 AI 영양 코치입니다.
-    현재 사용자는 {user["age_group"]}대 {gender}이며, 오늘의 누적 영양 섭취량은 다음과 같습니다.
-    {nutrient_summary}
-    이 정보를 바탕으로 사용자의 질문에 답변해주세요. 항상 친절하고 명확하게 한국어로 답변해야 합니다.
-    """
+### 역할 및 목표
+당신은 'AI 영양 코치'입니다. 사용자가 건강한 식습관을 형성하도록 돕는 것이 당신의 목표입니다. 항상 친절하고, 긍정적이며, 과학적 근거에 기반하여 조언해주세요.
+
+### 사용자 정보
+- **성별/나이**: {gender} / {user["age_group"]}대
+- **건강 목표**: {user["health_goal"] if user["health_goal"] else '설정되지 않음'}
+- **오늘의 누적 영양 섭취량**:
+{nutrient_summary}
+
+### 답변 가이드라인
+1.  **개인화**: 사용자의 정보(성별, 나이, 건강 목표, 섭취량)를 반드시 고려하여 답변하세요.
+2.  **구체적인 조언**: 막연한 이야기 대신, 구체적인 음식이나 행동을 추천해주세요. (예: "과일이 좋아요" 대신 "식후 디저트로 사과 반 쪽이나 블루베리 한 줌을 드셔보세요.")
+3.  **긍정적 강화**: 사용자의 노력을 칭찬하고 격려하여 동기를 부여해주세요.
+4.  **안전성**: 의학적 진단이나 처방은 할 수 없다고 명확히 밝히세요. 답변 마지막에 "이 조언은 정보 제공 목적이며, 전문적인 의학적 진단이나 처방을 대체할 수 없습니다."와 같은 주의 문구를 포함하는 것을 고려하세요.
+5.  **범위 제한**: 영양, 건강, 식단과 관련 없는 질문에는 "저는 영양 전문 AI 코치로서, 해당 질문에는 답변하기 어렵습니다."와 같이 정중히 거절하세요.
+
+이제 위의 정보를 바탕으로 사용자의 다음 질문에 답변해주세요.
+"""
     
     # 이전 대화 내용 + 새 질문
     messages = [{"role": "system", "content": system_prompt}]

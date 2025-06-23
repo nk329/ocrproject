@@ -17,11 +17,11 @@ function NutrientBars({ nutrients }) {
   // 로딩 상태 UI
   if (!nutrients) {
     return (
-      <div className="mt-6 bg-white p-4 rounded-lg border border-gray-200">
-        <h3 className="text-sm sm:text-base font-semibold text-green-700 mb-4">
+      <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm sm:text-base font-semibold text-green-700 dark:text-green-400 mb-4">
           오늘 섭취한 영양소 비율 (%)
         </h3>
-        <p className="text-center text-sm text-gray-500 mb-4">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
           오늘 섭취한 영양소를 계산하고 있습니다...
         </p>
         <div>
@@ -33,8 +33,8 @@ function NutrientBars({ nutrients }) {
 
   // 데이터가 있을 때의 UI
   return (
-    <div className="mt-6 bg-white p-4 rounded-lg border border-gray-200">
-      <h3 className="text-sm sm:text-base font-semibold text-green-700 mb-4">
+    <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+      <h3 className="text-sm sm:text-base font-semibold text-green-700 dark:text-green-400 mb-4">
         오늘 섭취한 영양소 비율 (%)
       </h3>
 
@@ -56,7 +56,7 @@ function NutrientBars({ nutrients }) {
               </span>
             </div>
 
-            <div className="relative w-full bg-gray-200 rounded-full h-2.5 sm:h-3 md:h-4 overflow-hidden">
+            <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 sm:h-3 md:h-4 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ease-out ${
                   percent < 30 ? "bg-red-400"

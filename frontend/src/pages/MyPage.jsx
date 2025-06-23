@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
 
 function Section({ title, children }) {
   return (
@@ -18,19 +19,9 @@ function SettingItem({ children }) {
   );
 }
 
-function useTheme() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(theme === 'light' ? 'dark' : 'light');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-  return [theme, setTheme];
-}
-
-function MyPage({ user, handleLogout }) {
-  const [theme, setTheme] = useTheme();
+function MyPage() {
+  const { user, handleLogout } = useOutletContext();
+  const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState({
     username: '',
     gender: '',
@@ -41,7 +32,6 @@ function MyPage({ user, handleLogout }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef(null);
-  const location = useLocation();
 
   useEffect(() => {
     if (!user || !user.id) return;
@@ -62,7 +52,7 @@ function MyPage({ user, handleLogout }) {
         }
       })
       .finally(() => setIsLoading(false));
-  }, [user?.id, location.pathname]);
+  }, [user?.id]);
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -129,6 +119,15 @@ function MyPage({ user, handleLogout }) {
 
   return (
     <div className="flex-1 p-6 overflow-y-auto bg-gray-100 dark:bg-gray-900">
+      <div className="bg-green-600 text-white p-4 shadow flex-shrink-0 flex justify-between items-center -m-6 mb-6">
+        <h2 className="text-lg font-bold">마이페이지</h2>
+        <button
+            onClick={handleLogout}
+            className="text-xs font-semibold bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md transition"
+        >
+            로그아웃
+        </button>
+      </div>
       {/* --- 프로필 정보 카드 (로딩/실데이터) --- */}
       {isLoading || !profile.username ? (
         <ProfileSkeleton />
@@ -165,12 +164,6 @@ function MyPage({ user, handleLogout }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition self-start"
-          >
-            로그아웃
-          </button>
         </div>
       )}
 

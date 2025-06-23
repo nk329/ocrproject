@@ -1,11 +1,11 @@
-// src/pages/NutritionPage.jsx
-import UploadForm from "../components/UploadForm";
 import { useState, useEffect } from "react";
-import NutrientBars from "../components/NutrientBars";
-import RightPanel from "../components/RightPanel";
-import EditNutrientsModal from "../components/EditNutrientsModal";
+import { Outlet } from 'react-router-dom';
+import NutrientBars from "./NutrientBars";
+import BottomNavBar from './BottomNavBar';
+import ChatModal from "./ChatModal";
+import EditNutrientsModal from "./EditNutrientsModal";
 
-function NutritionPage({ user, handleLogout }) {
+function SharedLayout({ user, handleLogout }) {
   const [image, setImage] = useState(null);
   const [result, setResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,6 +13,7 @@ function NutritionPage({ user, handleLogout }) {
   const [messages, setMessages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ocrResult, setOcrResult] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -39,7 +40,6 @@ function NutritionPage({ user, handleLogout }) {
         setIsInitialLoading(false);
       }
     };
-
     fetchInitialData();
   }, [user]);
 
@@ -48,25 +48,17 @@ function NutritionPage({ user, handleLogout }) {
       alert("이미지를 선택해주세요.");
       return;
     }
-
     const formData = new FormData();
     formData.append("image", image);
     formData.append("user_id", user.id);
-
     setIsSubmitting(true);
-
     try {
-      const res = await fetch("http://localhost:8000/upload", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch("http://localhost:8000/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (data.ocr_nutrients) {
         setOcrResult(data.ocr_nutrients);
         setIsModalOpen(true);
       }
-
     } catch (error) {
       console.error("요청 실패:", error);
     } finally {
@@ -76,7 +68,6 @@ function NutritionPage({ user, handleLogout }) {
 
   const handleFinalSubmit = async (finalNutrients) => {
     setIsSubmitting(true);
-
     try {
       const res = await fetch("http://localhost:8000/add-nutrients", {
         method: 'POST',
@@ -96,38 +87,25 @@ function NutritionPage({ user, handleLogout }) {
     }
   };
 
-  const isLoading = isInitialLoading || isSubmitting;
-
   const handleAskAI = async (question) => {
     if (!question.trim()) return;
-
     const userMessage = { role: "user", content: question };
     setMessages(prev => [...prev, userMessage]);
-
     try {
       const aiThinkingMessage = { role: "assistant", content: "...", isTyping: true };
       setMessages(prev => [...prev, aiThinkingMessage]);
-
       const response = await fetch("http://localhost:8000/ask-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user.id,
-          question: question,
-          history: messages,
-        }),
+        body: JSON.stringify({ user_id: user.id, question, history: messages }),
       });
-
       if (!response.ok) throw new Error("AI 응답 생성 실패");
-
       const data = await response.json();
-
       setMessages(prev => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = { role: "assistant", content: data.answer };
         return newMessages;
       });
-
     } catch (error) {
       console.error(error);
       const errorMessage = { role: "assistant", content: "죄송해요, 답변을 생성하는 데 문제가 발생했어요." };
@@ -138,39 +116,47 @@ function NutritionPage({ user, handleLogout }) {
       });
     }
   };
+  
+  const isLoading = isInitialLoading || isSubmitting;
 
   return (
-    <>
-      <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row overflow-hidden">
-        {/* 왼쪽 입력 영역 */}
-        <div className="w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto bg-transparent no-scrollbar">
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-green-600 mb-6 lg:mb-8 text-center">
-            DailyValue
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 font-sans">
+      <div className="hidden lg:flex flex-col lg:w-1/2 bg-[#f5f5f5] dark:bg-[#0d1b2a] p-6">
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-green-600 dark:text-green-400 mb-6 lg:mb-8 text-center">
+              DailyValue
           </h1>
           <NutrientBars nutrients={result?.nutrients} />
+      </div>
+      
+      <div className="w-full lg:w-1/2 flex flex-col relative bg-white dark:bg-gray-900 shadow-xl">
+        <main className="flex-1 overflow-y-auto no-scrollbar">
+          <Outlet context={{ 
+            user, result, messages, handleLogout, isInitialLoading, isLoading, isSubmitting,
+            image, onImageSelect: setImage, handleSubmit: handleAnalysis,
+            isModalOpen, setIsModalOpen, ocrResult, handleFinalSubmit,
+            isChatOpen, setIsChatOpen, onAskAI: handleAskAI
+          }} />
+        </main>
+        
+        <div className="flex-shrink-0">
+            <BottomNavBar />
         </div>
 
-        {/* 오른쪽 결과 영역 */}
-        <RightPanel 
-          user={user}
-          result={result}
+        <ChatModal 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
           messages={messages}
           onAskAI={handleAskAI}
-          handleLogout={handleLogout}
-          isInitialLoading={isInitialLoading}
-          onImageSelect={setImage}
-          handleSubmit={handleAnalysis}
-          isLoading={isLoading}
-          isSubmitting={isSubmitting}
-          image={image}
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          ocrResult={ocrResult}
-          handleFinalSubmit={handleFinalSubmit}
+        />
+        <EditNutrientsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          ocrData={ocrResult}
+          onSubmit={handleFinalSubmit}
         />
       </div>
-    </>
+    </div>
   );
 }
 
-export default NutritionPage;
+export default SharedLayout; 
