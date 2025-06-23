@@ -276,11 +276,28 @@ async def add_nutrients(request: AddNutrientsRequest):
     today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender)
     ai_feedback = await generate_ai_feedback(today_nutrients, user['gender'], user['age_group'])
 
+    # latestNutrients에 각 영양소별 percentage(이번 음식 기준)를 추가
+    name_to_key = {
+        "열량": "energy",
+        "단백질": "protein",
+        "나트륨": "sodium",
+        "당류": "sugar",
+        "지방": "fat",
+        "포화지방": "sat_fat"
+    }
+    base = NUTRIENT_BASES[gender]
+    latest_nutrients_with_percent = []
+    for n in request.nutrients:
+        key = name_to_key.get(n["name"])
+        base_val = base.get(key, 1)
+        percent = round(float(n["value"]) / base_val * 100) if base_val else None
+        latest_nutrients_with_percent.append({**n, "percentage": percent})
+
     response = {
         "username": user["username"],
         "gender": gender,
         "ageGroup": user["age_group"],
-        "latestNutrients": request.nutrients, # 방금 추가된 영양소
+        "latestNutrients": latest_nutrients_with_percent, # 방금 추가된 영양소 + 이번 음식 기준 충족률
         "nutrients": today_nutrients, # 전체 누적 영양소
         "ai_feedback": ai_feedback
     }

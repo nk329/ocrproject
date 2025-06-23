@@ -22,13 +22,13 @@ function NutritionAnalysis({ result }) {
               <tr>
                 <th className="border px-1 sm:px-2 py-2">영양소</th>
                 <th className="border px-1 sm:px-2 py-2">섭취량</th>
-                <th className="border px-1 sm:px-2 py-2">충족률</th>
+                <th className="border px-1 sm:px-2 py-2">충족률(이번 음식)</th>
+                <th className="border px-1 sm:px-2 py-2">충족률(오늘 누적)</th>
               </tr>
             </thead>
             <tbody>
               {result.latestNutrients.map((n, i) => {
-                // 누적값에서 같은 영양소의 percentage 찾기
-                const matched = result.nutrients?.find(x => x.name === n.name);
+                const total = result.nutrients?.find(x => x.name === n.name);
                 return (
                   <tr key={i}>
                     <td
@@ -51,7 +51,10 @@ function NutritionAnalysis({ result }) {
                       {n.value} {n.unit}
                     </td>
                     <td className="border px-1 sm:px-2 py-2">
-                      {matched && matched.percentage !== undefined ? `${matched.percentage}%` : "-"}
+                      {n.percentage !== undefined ? `${n.percentage}%` : "-"}
+                    </td>
+                    <td className="border px-1 sm:px-2 py-2">
+                      {total && total.percentage !== undefined ? `${total.percentage}%` : "-"}
                     </td>
                   </tr>
                 );

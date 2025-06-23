@@ -163,14 +163,12 @@ function NutritionPage({ user, handleLogout }) {
           isLoading={isLoading}
           isSubmitting={isSubmitting}
           image={image}
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          ocrResult={ocrResult}
+          handleFinalSubmit={handleFinalSubmit}
         />
       </div>
-      <EditNutrientsModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        ocrData={ocrResult}
-        onSubmit={handleFinalSubmit}
-      />
     </>
   );
 }

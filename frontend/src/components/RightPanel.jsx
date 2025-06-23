@@ -6,11 +6,13 @@ import MyPage from '../pages/MyPage';
 import BottomNavBar from './BottomNavBar';
 import ChatModal from './ChatModal';
 import UploadForm from './UploadForm';
+import EditNutrientsModal from './EditNutrientsModal';
 
 function RightPanel({ 
   user, result, messages, onAskAI, handleLogout, isInitialLoading,
   onImageSelect, handleSubmit, isLoading, isSubmitting,
-  image
+  image,
+  isModalOpen, ocrResult, handleFinalSubmit, setIsModalOpen
 }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -105,6 +107,13 @@ function RightPanel({
           onClose={() => setIsChatOpen(false)}
           messages={messages}
           onAskAI={onAskAI}
+        />
+        {/* 영양소 수정 모달 */}
+        <EditNutrientsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          ocrData={ocrResult}
+          onSubmit={handleFinalSubmit}
         />
     </div>
   );
