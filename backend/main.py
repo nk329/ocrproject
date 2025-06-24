@@ -1,11 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from tempfile import NamedTemporaryFile
 from shutil import copyfileobj
 from routers.auth_routes import router as auth_router
 from routers import auth
-from db import conn, cursor  # DB 연결
+from db import get_db  # DB 연결 함수로 변경
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 from datetime import date, timedelta, datetime
@@ -95,19 +95,17 @@ async def generate_ai_feedback(nutrients: list, gender: str, age_group: str) -> 
 
 
 #  하루 누적 저장 함수
-def save_nutrients(user_id: int, nutrients: list):
+def save_nutrients(user_id: int, nutrients: list, cursor, conn):
     today = get_today_kst() # 한국 시간 기준 오늘 날짜 사용
     for nutrient in nutrients:
         name = nutrient["name"]
         value = float(nutrient["value"])
         unit = nutrient["unit"]
-
         cursor.execute("""
             SELECT id, value FROM daily_nutrients
             WHERE user_id = %s AND nutrient_name = %s AND date = %s
         """, (user_id, name, today))
         existing = cursor.fetchone()
-
         if existing:
             new_total = existing["value"] + value
             cursor.execute("UPDATE daily_nutrients SET value = %s WHERE id = %s", (new_total, existing["id"]))
@@ -119,7 +117,7 @@ def save_nutrients(user_id: int, nutrients: list):
     conn.commit()
 
 
-def get_today_nutrients(user_id: int, gender: str):
+def get_today_nutrients(user_id: int, gender: str, cursor):
     today = get_today_kst() # 한국 시간 기준 오늘 날짜 사용
     cursor.execute("""
         SELECT nutrient_name, value, unit
@@ -158,10 +156,13 @@ def get_today_nutrients(user_id: int, gender: str):
 
 @app.get("/user-status/{user_id}")
 async def get_user_status(user_id: int):
-    # profile_image 컬럼도 함께 조회합니다.
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT username, gender, age_group, activity_level, health_goal, profile_image FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     if not user:
+        cursor.close()
+        conn.close()
         return JSONResponse(status_code=404, content={"error": "사용자를 찾을 수 없습니다."})
 
     username = user["username"]
@@ -170,7 +171,7 @@ async def get_user_status(user_id: int):
     gender = "남성" if gender_db.lower() == "male" else "여성"
 
     # 누적된 하루치 불러오기
-    today_nutrients = get_today_nutrients(user_id=user_id, gender=gender)
+    today_nutrients = get_today_nutrients(user_id=user_id, gender=gender, cursor=cursor)
 
     # AI 피드백 생성
     ai_feedback = await generate_ai_feedback(today_nutrients, gender, ageGroup)
@@ -187,6 +188,8 @@ async def get_user_status(user_id: int):
         "ai_feedback": ai_feedback
     }
 
+    cursor.close()
+    conn.close()
     return JSONResponse(content=response)
 
 
@@ -218,26 +221,28 @@ async def upload_image(
     image: UploadFile = File(...),
     user_id: str = Form(...)
 ):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     # 사용자 정보 조회 (성별만 필요)
     cursor.execute("SELECT gender FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     if not user:
+        cursor.close()
+        conn.close()
         return JSONResponse(status_code=404, content={"error": "사용자를 찾을 수 없습니다."})
     gender = "남성" if user["gender"].lower() == "male" else "여성"
-    
     #  이미지 저장 및 전처리
     suffix = os.path.splitext(image.filename)[1]
     with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         copyfileobj(image.file, tmp)
         tmp_path = tmp.name
-
     processed_img = preprocess_image(tmp_path)
     if processed_img is None:
+        cursor.close()
+        conn.close()
         return JSONResponse(status_code=400, content={"error": "이미지 불러오기 실패"})
-
     result = reader.readtext(processed_img, detail=0)
     print("추출된 텍스트:", result)
-
     #  OCR 기반 영양소 추출
     base = NUTRIENT_BASES[gender]
     nutrient_info = {
@@ -248,7 +253,6 @@ async def upload_image(
         "지방": ("g", extract_value(result, ["지방", "fat"]), base["fat"]),
         "포화지방": ("g", extract_value(result, ["포화지방", "satfat", "saturated"]), base["sat_fat"]),
     }
-
     # OCR로 분석된 값만 반환 (DB 저장 X)
     ocr_nutrients = []
     for name, (unit, val, base_val) in nutrient_info.items():
@@ -257,23 +261,26 @@ async def upload_image(
             "value": float(val),
             "unit": unit
         })
-        
     os.remove(tmp_path)
+    cursor.close()
+    conn.close()
     # DB 저장 없이 OCR 결과만 반환
     return JSONResponse(content={"ocr_nutrients": ocr_nutrients})
 
 
 @app.post("/add-nutrients")
 async def add_nutrients(request: AddNutrientsRequest):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     # 사용자가 수정한 최종 데이터를 DB에 저장
-    save_nutrients(user_id=request.user_id, nutrients=request.nutrients)
+    save_nutrients(user_id=request.user_id, nutrients=request.nutrients, cursor=cursor, conn=conn)
     
     # 사용자 정보 및 업데이트된 누적 데이터 조회 후 반환
     cursor.execute("SELECT username, gender, age_group, activity_level, health_goal, profile_image FROM users WHERE id = %s", (request.user_id,))
     user = cursor.fetchone()
     gender = "남성" if user["gender"].lower() == "male" else "여성"
     
-    today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender)
+    today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender, cursor=cursor)
     ai_feedback = await generate_ai_feedback(today_nutrients, user['gender'], user['age_group'])
 
     # latestNutrients에 각 영양소별 percentage(이번 음식 기준)를 추가
@@ -302,49 +309,53 @@ async def add_nutrients(request: AddNutrientsRequest):
         "ai_feedback": ai_feedback
     }
     
+    cursor.close()
+    conn.close()
     return JSONResponse(content=response)
 
 
 @app.get("/statistics/{user_id}")
 async def get_statistics(user_id: int):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     # 최근 90일간의 데이터 조회
     today_kst = get_today_kst() # 한국 시간 기준 오늘 날짜 사용
     ninety_days_ago = today_kst - timedelta(days=90)
-    
     cursor.execute("""
         SELECT date, nutrient_name, value, unit
         FROM daily_nutrients
         WHERE user_id = %s AND date >= %s
         ORDER BY date DESC
     """, (user_id, ninety_days_ago))
-    
     rows = cursor.fetchall()
-
     # 날짜별로 데이터 그룹화
     stats_data = {}
     for r in rows:
         day = r["date"].isoformat() # 'YYYY-MM-DD' 형식의 문자열로 변환
         if day not in stats_data:
             stats_data[day] = []
-        
         stats_data[day].append({
             "name": r["nutrient_name"],
             "value": float(r["value"]),
             "unit": r["unit"]
         })
-        
+    cursor.close()
+    conn.close()
     return JSONResponse(content=stats_data)
 
 @app.post("/ask-ai")
 async def ask_ai(request: AskRequest):
-    # 사용자 정보 및 누적 영양 데이터 조회 (health_goal 추가)
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT gender, age_group, health_goal FROM users WHERE id = %s", (request.user_id,))
     user = cursor.fetchone()
     if not user:
+        cursor.close()
+        conn.close()
         return JSONResponse(status_code=404, content={"error": "사용자를 찾을 수 없습니다."})
     
     gender = "남성" if user["gender"].lower() == "male" else "여성"
-    today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender)
+    today_nutrients = get_today_nutrients(user_id=request.user_id, gender=gender, cursor=cursor)
     
     if today_nutrients:
         nutrient_summary = "\n".join(
@@ -386,9 +397,13 @@ async def ask_ai(request: AskRequest):
             temperature=0.7,
         )
         answer = completion.choices[0].message.content.strip()
+        cursor.close()
+        conn.close()
         return {"answer": answer}
     except Exception as e:
         print(f"Error calling OpenAI API: {e}")
+        cursor.close()
+        conn.close()
         return JSONResponse(status_code=500, content={"error": "AI 피드백 생성 중 오류 발생"})
 
 @app.put("/users/{user_id}")
@@ -406,33 +421,49 @@ async def update_user_profile(user_id: int, request: UserUpdateRequest):
     values.append(user_id)
 
     query = f"UPDATE users SET {set_clause} WHERE id = %s"
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute(query, tuple(values))
     conn.commit()
+    cursor.close()
+    conn.close()
 
     return {"message": "회원 정보가 성공적으로 수정되었습니다."}
 
 @app.put("/users/{user_id}/password")
 async def change_password(user_id: int, request: PasswordChangeRequest):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT password FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     if not user:
+        cursor.close()
+        get_db().close()
         return JSONResponse(status_code=404, content={"detail": "사용자를 찾을 수 없습니다."})
 
     if not bcrypt.checkpw(request.current_password.encode('utf-8'), user["password"].encode('utf-8')):
+        cursor.close()
+        get_db().close()
         return JSONResponse(status_code=400, content={"detail": "현재 비밀번호가 일치하지 않습니다."})
 
     hashed_new_password = bcrypt.hashpw(request.new_password.encode('utf-8'), bcrypt.gensalt())
     cursor.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_new_password.decode('utf-8'), user_id))
     conn.commit()
+    cursor.close()
+    get_db().close()
 
     return {"message": "비밀번호가 성공적으로 변경되었습니다."}
 
 @app.delete("/users/{user_id}")
 async def delete_user(user_id: int):
     # 사용자와 관련된 모든 데이터를 삭제해야 합니다. (예: daily_nutrients)
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("DELETE FROM daily_nutrients WHERE user_id = %s", (user_id,))
     cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
+    cursor.close()
+    get_db().close()
     return {"message": "회원 탈퇴가 성공적으로 처리되었습니다."}
 
 # 프로필 이미지 업로드를 위한 요청 모델
@@ -442,6 +473,88 @@ class ProfileImageRequest(BaseModel):
 @app.post("/users/{user_id}/profile-image")
 async def upload_profile_image(user_id: int, request: ProfileImageRequest):
     # Base64 이미지 데이터를 DB에 저장
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("UPDATE users SET profile_image = %s WHERE id = %s", (request.profile_image, user_id))
     conn.commit()
+    cursor.close()
+    get_db().close()
     return {"message": "프로필 이미지가 성공적으로 업데이트되었습니다."}
+
+# --- 식단 사진/메모 모델 ---
+class MealPhotoRequest(BaseModel):
+    user_id: int
+    date: str  # YYYY-MM-DD
+    image_base64: str
+
+class MealMemoRequest(BaseModel):
+    user_id: int
+    date: str  # YYYY-MM-DD
+    memo: str
+
+# --- 식단 사진 업로드 ---
+@app.post("/meal-photo")
+def upload_meal_photo(req: MealPhotoRequest):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "INSERT INTO meal_photos (user_id, date, image_base64) VALUES (%s, %s, %s)",
+        (req.user_id, req.date, req.image_base64)
+    )
+    conn.commit()
+    cursor.close()
+    get_db().close()
+    return {"message": "사진 업로드 성공"}
+
+# --- 식단 사진 조회 ---
+@app.get("/meal-photo")
+def get_meal_photos(user_id: int, date: str):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT id, image_base64 FROM meal_photos WHERE user_id = %s AND date = %s",
+        (user_id, date)
+    )
+    photos = cursor.fetchall()
+    cursor.close()
+    get_db().close()
+    return {"photos": [p["image_base64"] for p in photos]}
+
+# --- 식단 메모 저장 ---
+@app.post("/meal-memo")
+def save_meal_memo(req: MealMemoRequest):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT id FROM meal_memos WHERE user_id = %s AND date = %s",
+        (req.user_id, req.date)
+    )
+    existing = cursor.fetchone()
+    if existing:
+        cursor.execute(
+            "UPDATE meal_memos SET memo = %s WHERE id = %s",
+            (req.memo, existing["id"])
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO meal_memos (user_id, date, memo) VALUES (%s, %s, %s)",
+            (req.user_id, req.date, req.memo)
+        )
+    conn.commit()
+    cursor.close()
+    get_db().close()
+    return {"message": "메모 저장 성공"}
+
+# --- 식단 메모 조회 ---
+@app.get("/meal-memo")
+def get_meal_memo(user_id: int, date: str):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT memo FROM meal_memos WHERE user_id = %s AND date = %s",
+        (user_id, date)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    get_db().close()
+    return {"memo": row["memo"] if row else ""}

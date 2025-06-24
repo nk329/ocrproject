@@ -32,7 +32,7 @@ function ChatWindow({ messages, onAskAI }) {
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="예: 단백질이 부족한데 어떤 음식을 먹을까요? 전남규짱짱맨"
+          placeholder="단백질이 부족한데 어떤 음식을 먹을까요?"
           className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
