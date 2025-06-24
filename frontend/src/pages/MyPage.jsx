@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import EditProfileModal from '../components/EditProfileModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 function Section({ title, children }) {
   return (
@@ -31,6 +33,8 @@ function MyPage() {
     profileImage: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -103,6 +107,13 @@ function MyPage() {
     });
   };
 
+  const handleProfileUpdate = (updatedData) => {
+    setProfile(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+  };
+
   // 스켈레톤 UI 컴포넌트
   const ProfileSkeleton = () => (
     <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-8 animate-pulse">
@@ -160,7 +171,7 @@ function MyPage() {
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{profile.username}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {profile.gender} / {profile.ageGroup}대
+                {profile.gender} / {profile.ageGroup && (profile.ageGroup.includes('대') ? profile.ageGroup : profile.ageGroup + '대')}
               </p>
             </div>
           </div>
@@ -171,11 +182,11 @@ function MyPage() {
       <Section title="회원 프로필 관리">
         <SettingItem>
           <span className="font-semibold text-gray-700 dark:text-gray-200">회원 정보 수정</span>
-          <button onClick={() => alert('개발 예정입니다.')} className="text-sm text-green-600 font-bold">수정하기</button>
+          <button onClick={() => setShowEditProfileModal(true)} className="text-sm text-green-600 font-bold">수정하기</button>
         </SettingItem>
         <SettingItem>
           <span className="font-semibold text-gray-700 dark:text-gray-200">비밀번호 변경</span>
-          <button onClick={() => alert('개발 예정입니다.')} className="text-sm text-green-600 font-bold">변경하기</button>
+          <button onClick={() => setShowChangePasswordModal(true)} className="text-sm text-green-600 font-bold">변경하기</button>
         </SettingItem>
         <SettingItem>
           <span className="font-semibold text-gray-700 dark:text-gray-200">회원 탈퇴</span>
@@ -213,6 +224,20 @@ function MyPage() {
           </div>
         </SettingItem>
       </Section>
+
+      {/* 모달 컴포넌트들 */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        profile={{ ...profile, id: user?.id }}
+        onUpdate={handleProfileUpdate}
+      />
+      
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userId={user?.id}
+      />
     </div>
   );
 }
