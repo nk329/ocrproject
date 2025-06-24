@@ -1,8 +1,10 @@
 // src/pages/LoginRegisterPage.jsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function LoginRegisterPage({ setUser }) {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [gender, setGender] = useState("male");
@@ -25,6 +27,7 @@ export default function LoginRegisterPage({ setUser }) {
       if (isLogin) {
         setUser(res.data.user);
         localStorage.setItem("user", JSON.stringify(res.data.user)); // 로그인 성공시 로컬 스토리지 저장
+        navigate("/");
       } else {
         alert("회원가입 성공! 로그인해주세요");
         setIsLogin(true);

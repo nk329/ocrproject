@@ -24,3 +24,57 @@ code {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* 스크롤바 숨기기 유틸리티 클래스 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* React-Calendar 스타일 */
+@import 'react-calendar/dist/Calendar.css';
+
+/* React-Calendar Dark Mode */
+.dark-calendar {
+  @apply bg-transparent;
+}
+
+.dark-calendar .react-calendar__navigation button {
+  @apply text-gray-300 hover:bg-gray-700;
+}
+
+.dark-calendar .react-calendar__navigation button:disabled {
+  @apply text-gray-500;
+}
+
+.dark-calendar .react-calendar__month-view__weekdays__weekday {
+  @apply text-gray-400;
+}
+
+.dark-calendar .react-calendar__tile {
+  @apply text-gray-200 hover:bg-gray-700 rounded;
+}
+
+.dark-calendar .react-calendar__tile--now {
+  @apply bg-gray-700;
+}
+
+.dark-calendar .react-calendar__tile--active {
+  @apply bg-green-600 text-white;
+}
+
+.dark-calendar .react-calendar__tile.has-data {
+    @apply bg-green-900 text-green-200 font-bold;
+}
+
+.dark-calendar .react-calendar__tile:disabled {
+    @apply text-gray-600;
+}
+
+.dark-calendar .react-calendar__tile--hasActive {
+    @apply bg-green-700;
+}
