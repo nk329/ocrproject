@@ -16,7 +16,8 @@ function HomePage() {
     <>
       {/* Header */}
       <div className="bg-green-600 text-white p-4 shadow flex-shrink-0 flex justify-between items-center">
-          {result ? (
+          <h2 className="text-lg font-bold">DailyValue</h2>
+          {result && (
               <div className="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 15c2.362 0 4.578.57 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   <div className="text-sm">
@@ -24,8 +25,7 @@ function HomePage() {
                       <span className="text-xs text-green-200 ml-2">({result.gender} / {result.ageGroup}대)</span>
                   </div>
               </div>
-          ) : <h2 className="text-lg font-bold">영양 분석 결과</h2>}
-          <button onClick={handleLogout} className="text-xs font-semibold bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md transition">로그아웃</button>
+          )}
       </div>
       
       <div className="p-4 lg:p-6">
